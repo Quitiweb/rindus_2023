@@ -1,0 +1,32 @@
+version: '3.8'
+
+volumes:
+  postgres_data_dev: { }
+
+services:
+  db:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_DB: synchrodb
+      POSTGRES_USER: rindus
+      POSTGRES_PASSWORD: r1ndu5#p455w0rd
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+        - postgres_data_dev:/var/lib/postgresql/data/pgdata
+        - ./sql/postgresql:/docker-entrypoint-initdb.d
+    ports:
+        - "5432:5432"
+
+  web:
+    platform: "linux/amd64"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python3 manage.py runserver 0.0.0.0:8000
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
