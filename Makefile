@@ -17,3 +17,6 @@ shell:
 
 createsuperuser:
 	docker-compose run web python manage.py createsuperuser
+
+bash:
+	docker-compose run web bash
