@@ -6,12 +6,12 @@ from blog.models import Comment, Post
 
 
 class CommentView(ModelViewSet):
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (permissions.IsAuthenticated,)
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
 
 
 class PostView(ModelViewSet):
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (permissions.IsAuthenticated,)
     queryset = Post.objects.all()
     serializer_class = PostSerializer

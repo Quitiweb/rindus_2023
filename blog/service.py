@@ -36,9 +36,12 @@ class PostService:
                 )
                 result["success"].append(post["title"])
 
+            # TODO: checkear esto. Si tiene sentido o no
+            #  Ademas no estamos usando la lista q devuelve
             except AlreadyExistsException:
                 result["errors"].append(post["title"])
 
+            # TODO: Aqui no parece q entra en los tests
             except ValueError as exc:
                 raise ValidationError(str(exc)) from exc
 
@@ -96,9 +99,12 @@ class CommentService:
                 )
                 result["success"].append(comment["name"])
 
+            # TODO: checkear esto. Si tiene sentido o no
+            #  Ademas no estamos usando la lista q devuelve
             except AlreadyExistsException:
                 result["errors"].append(comment["name"])
 
+            # TODO: Aqui no parece q entra en los tests
             except ValueError as exc:
                 raise ValidationError(str(exc)) from exc
 

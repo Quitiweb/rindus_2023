@@ -20,3 +20,6 @@ createsuperuser:
 
 bash:
 	docker-compose run web bash
+
+test:
+	docker-compose run web python manage.py test

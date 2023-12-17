@@ -11,7 +11,10 @@ from rest_framework import status
 from blog.models import Comment, Post
 
 API_URL = "https://jsonplaceholder.typicode.com/"
-ALLOWED_MODELS = ["posts", "comments", ]
+ALLOWED_MODELS = [
+    "posts",
+    "comments",
+]
 
 
 def reset_blog_data(comments, posts):
