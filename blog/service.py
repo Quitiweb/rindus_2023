@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Dict
 
-from rest_framework.exceptions import ValidationError
+from django.db.utils import IntegrityError
 
-from blog.api.exceptions import AlreadyExistsException
+from blog.api.exceptions import DoesNotExistException
 from blog.models import Comment, Post
 
 
@@ -23,36 +22,25 @@ class PostService:
         posts: list
 
     @staticmethod
-    def create_bulk(data: PostCreateBulkInput) -> Dict:
-        result = {"success": [], "errors": []}
-
+    def create_bulk(data: PostCreateBulkInput):
         for post in data.posts:
-            try:
-                PostService.create(
-                    PostService.PostCreateInput(
-                        title=post["title"],
-                        body=post["body"],
-                    )
+            PostService.create(
+                PostService.PostCreateInput(
+                    title=post["title"],
+                    body=post["body"],
                 )
-                result["success"].append(post["title"])
-
-            # TODO: checkear esto. Si tiene sentido o no
-            #  Ademas no estamos usando la lista q devuelve
-            except AlreadyExistsException:
-                result["errors"].append(post["title"])
-
-            # TODO: Aqui no parece q entra en los tests
-            except ValueError as exc:
-                raise ValidationError(str(exc)) from exc
-
-        return result
+            )
 
     @staticmethod
     def create(data: PostCreateInput) -> Post:
-        post = Post.objects.create(
-            title=data.title,
-            body=data.body,
-        )
+        try:
+            post = Post.objects.create(
+                title=data.title,
+                body=data.body,
+            )
+
+        except IntegrityError as exc:
+            raise IntegrityError(str(exc)) from exc
 
         return post
 
@@ -84,42 +72,36 @@ class CommentService:
         comments: list
 
     @staticmethod
-    def create_bulk(data: CommentCreateBulkInput) -> Dict:
-        result = {"success": [], "errors": []}
-
+    def create_bulk(data: CommentCreateBulkInput):
         for comment in data.comments:
-            try:
-                CommentService.create(
-                    CommentService.CommentCreateInput(
-                        post_id=comment["postId"],
-                        name=comment["name"],
-                        email=comment["email"],
-                        body=comment["body"],
-                    )
+            CommentService.create(
+                CommentService.CommentCreateInput(
+                    post_id=comment["postId"],
+                    name=comment["name"],
+                    email=comment["email"],
+                    body=comment["body"],
                 )
-                result["success"].append(comment["name"])
-
-            # TODO: checkear esto. Si tiene sentido o no
-            #  Ademas no estamos usando la lista q devuelve
-            except AlreadyExistsException:
-                result["errors"].append(comment["name"])
-
-            # TODO: Aqui no parece q entra en los tests
-            except ValueError as exc:
-                raise ValidationError(str(exc)) from exc
-
-        return result
+            )
 
     @staticmethod
     def create(data: CommentCreateInput) -> Comment:
-        post = Comment.objects.create(
-            post_id=data.post_id,
-            name=data.name,
-            email=data.email,
-            body=data.body,
-        )
+        try:
+            post = Post.objects.get(id=data.post_id)
+        except Post.DoesNotExist as exc:
+            raise DoesNotExistException(detail="The given post does not exist") from exc
 
-        return post
+        try:
+            comment = Comment.objects.create(
+                post=post,
+                name=data.name,
+                email=data.email,
+                body=data.body,
+            )
+
+        except IntegrityError as exc:
+            raise IntegrityError(str(exc)) from exc
+
+        return comment
 
     @staticmethod
     def update(instance: Comment, data: CommentUpdateInput) -> Comment:

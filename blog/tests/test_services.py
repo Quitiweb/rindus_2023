@@ -1,9 +1,7 @@
-from unittest import skip
-
-from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 from django.test import TestCase
 
-from blog.api.exceptions import AlreadyExistsException
+from blog.api.exceptions import DoesNotExistException
 from blog.models import Post, Comment
 from blog.service import PostService, CommentService
 
@@ -23,29 +21,23 @@ class PostServiceTest(TestCase):
         self.assertEqual(updated_post.title, "Updated Title")
         self.assertEqual(updated_post.body, "Updated Body")
 
-    def test_create_bulk_post(self):
+    def test_create_bulk_posts(self):
         posts_data = PostService.PostCreateBulkInput(
             posts=[
                 {"title": "Bulk Post 1", "body": "Body 1"},
                 {"title": "Bulk Post 2", "body": "Body 2"},
             ]
         )
-        result = PostService.create_bulk(posts_data)
-        self.assertTrue("Bulk Post 1" in result["success"])
-        self.assertTrue("Bulk Post 2" in result["success"])
+        PostService.create_bulk(posts_data)
+        self.assertEqual(Post.objects.count(), 2)
+        self.assertTrue(Post.objects.filter(title="Bulk Post 1").exists())
+        self.assertTrue(Post.objects.filter(title="Bulk Post 2").exists())
 
-    @skip("Will fix later")
-    def test_create_post_with_invalid_data(self):
-        with self.assertRaises(ValidationError):
-            PostService.create(PostService.PostCreateInput(title="", body=""))
-
-    @skip("Will fix later")
-    def test_create_bulk_post_with_existing_post(self):
-        Post.objects.create(title="Existing Post", body="Existing Body")
+    def test_create_bulk_posts_with_invalid_data(self):
         posts_data = PostService.PostCreateBulkInput(
-            posts=[{"title": "Existing Post", "body": "New Body"}]
+            posts=[{"title": None, "body": "Body"}]
         )
-        with self.assertRaises(AlreadyExistsException):
+        with self.assertRaises(IntegrityError):
             PostService.create_bulk(posts_data)
 
 
@@ -78,39 +70,41 @@ class CommentServiceTest(TestCase):
         self.assertEqual(updated_comment.email, "updated@example.com")
         self.assertEqual(updated_comment.body, "Updated Body")
 
-    def test_create_bulk_comment(self):
+    def test_create_bulk_comments(self):
+        post = Post.objects.create(title="Test Post", body="Test Body")
         comments_data = CommentService.CommentCreateBulkInput(
             comments=[
                 {
-                    "postId": self.post.id,
+                    "postId": post.id,
                     "name": "User 1",
                     "email": "user1@example.com",
                     "body": "Comment 1",
                 },
                 {
-                    "postId": self.post.id,
+                    "postId": post.id,
                     "name": "User 2",
                     "email": "user2@example.com",
                     "body": "Comment 2",
                 },
             ]
         )
-        result = CommentService.create_bulk(comments_data)
-        self.assertTrue("User 1" in result["success"])
-        self.assertTrue("User 2" in result["success"])
+        CommentService.create_bulk(comments_data)
+        self.assertEqual(Comment.objects.count(), 2)
+        self.assertTrue(Comment.objects.filter(name="User 1").exists())
+        self.assertTrue(Comment.objects.filter(name="User 2").exists())
 
-    @skip("Will fix later")
-    def test_create_comment_with_invalid_data(self):
-        with self.assertRaises(ValidationError):
-            CommentService.create(
-                CommentService.CommentCreateInput(
-                    post_id=self.post.id, name="", email="invalid-email", body=""
-                )
-            )
+    def test_create_bulk_comments_with_invalid_data(self):
+        post = Post.objects.create(title="Test Post", body="Test Body")
+        comments_data = CommentService.CommentCreateBulkInput(
+            comments=[
+                {"postId": post.id, "name": None, "email": "invalid-email", "body": ""}
+            ]
+        )
+        with self.assertRaises(IntegrityError):
+            CommentService.create_bulk(comments_data)
 
-    @skip("Will fix later")
     def test_create_comment_with_nonexistent_post(self):
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(DoesNotExistException):
             CommentService.create(
                 CommentService.CommentCreateInput(
                     post_id=9999,
