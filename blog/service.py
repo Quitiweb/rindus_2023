@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 
 from django.db.utils import IntegrityError
+from django.forms.models import model_to_dict
 
 from blog.api.exceptions import DoesNotExistException
 from blog.models import Comment, Post
+from blog.tools import synchronise
 
 
 class PostService:
@@ -22,17 +24,18 @@ class PostService:
         posts: list
 
     @staticmethod
-    def create_bulk(data: PostCreateBulkInput):
+    def create_bulk(data: PostCreateBulkInput) -> None:
         for post in data.posts:
             PostService.create(
                 PostService.PostCreateInput(
                     title=post["title"],
                     body=post["body"],
-                )
+                ),
+                is_bulk=True,
             )
 
     @staticmethod
-    def create(data: PostCreateInput) -> Post:
+    def create(data: PostCreateInput, is_bulk=False) -> Post:
         try:
             post = Post.objects.create(
                 title=data.title,
@@ -42,6 +45,9 @@ class PostService:
         except IntegrityError as exc:
             raise IntegrityError(str(exc)) from exc
 
+        if not is_bulk:
+            synchronise(type(post).__name__.lower(), model_to_dict(post), "c")
+
         return post
 
     @staticmethod
@@ -49,8 +55,14 @@ class PostService:
         instance.title = data.title
         instance.body = data.body
         instance.save(update_fields=["title", "body"])
+        synchronise(type(instance).__name__.lower(), model_to_dict(instance), "u")
 
         return instance
+
+    @staticmethod
+    def delete(post: Post) -> None:
+        post.delete()
+        synchronise(type(post).__name__.lower(), model_to_dict(post), "d")
 
 
 class CommentService:
@@ -63,6 +75,7 @@ class CommentService:
 
     @dataclass
     class CommentUpdateInput:
+        post: Post = None
         name: str = None
         email: str = None
         body: str = None
@@ -72,7 +85,7 @@ class CommentService:
         comments: list
 
     @staticmethod
-    def create_bulk(data: CommentCreateBulkInput):
+    def create_bulk(data: CommentCreateBulkInput) -> None:
         for comment in data.comments:
             CommentService.create(
                 CommentService.CommentCreateInput(
@@ -80,11 +93,12 @@ class CommentService:
                     name=comment["name"],
                     email=comment["email"],
                     body=comment["body"],
-                )
+                ),
+                is_bulk=True,
             )
 
     @staticmethod
-    def create(data: CommentCreateInput) -> Comment:
+    def create(data: CommentCreateInput, is_bulk=False) -> Comment:
         try:
             post = Post.objects.get(id=data.post_id)
         except Post.DoesNotExist as exc:
@@ -101,6 +115,9 @@ class CommentService:
         except IntegrityError as exc:
             raise IntegrityError(str(exc)) from exc
 
+        if not is_bulk:
+            synchronise(type(comment).__name__.lower(), model_to_dict(comment), "c")
+
         return comment
 
     @staticmethod
@@ -109,5 +126,11 @@ class CommentService:
         instance.email = data.email
         instance.body = data.body
         instance.save(update_fields=["name", "email", "body"])
+        synchronise(type(instance).__name__.lower(), model_to_dict(instance), "u")
 
         return instance
+
+    @staticmethod
+    def delete(comment: Comment) -> None:
+        comment.delete()
+        synchronise(type(comment).__name__.lower(), model_to_dict(comment), "d")

@@ -17,7 +17,32 @@ ALLOWED_MODELS = [
 ]
 
 
+def synchronise(model, data, operation):
+    """
+    This function make requests to Fake API to synchronise the data
+    between both systems.
+    :param model: the model name to sync (post or comment)
+    :param data: json data for the request
+    :param operation:
+        - c: create
+        - u: update
+        - d: delete
+    """
+    url = API_URL + model + "s/"
+    if operation == "c":
+        requests.post(url, json=data)
+    if operation == "u":
+        requests.put(url + str(data["id"]), json=data)
+    if operation == "d":
+        requests.delete(url + str(data["id"]))
+
+
 def reset_blog_data(comments, posts):
+    """
+    Deletes all the data from the blog app and reset the table indexes
+    :param comments: Comments.objects.all() queryset
+    :param posts: Post.objects.all() queryset
+    """
     comments.delete()
     posts.delete()
 
@@ -31,9 +56,8 @@ def get_fake_data(model):
     """
     Gets the data from JsonPlaceholder Free Fake Rest API
 
-    Args:
-        :model: which data do we want to get? posts or comments
-    Returns:
+    :param model: which data do we want to get? posts or comments
+    :return:
         - None if there was an error
         - A list with the fake generated content
     """
@@ -43,3 +67,10 @@ def get_fake_data(model):
             return json.loads(r.content)
 
     return
+
+
+def get_serializer_class(view):
+    if not hasattr(view, "action") or view.action not in view.serializer_classes:
+        return view.serializer_class
+
+    return view.serializer_classes[view.action]
