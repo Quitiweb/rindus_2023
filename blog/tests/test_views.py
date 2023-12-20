@@ -62,7 +62,7 @@ class CommentViewTest(APITestCase):
 
     def test_create_comment(self):
         data = {
-            "post": self.post.id,
+            "post_id": self.post.id,
             "name": "New Commenter",
             "email": "commenter@example.com",
             "body": "New Comment",
