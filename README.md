@@ -11,6 +11,11 @@ A simple REST API to interact with the Fake API in JSONPlaceholder - Free Fake R
  - `coverage`: To measure the test coverage
 
 
+## How to build and run the Project
+**important!!**
+First of all, copy the `.env.example` file to create a new `.env` file, so you will have your local
+environment variables ready to build the project
+
 ## Building and Running the Project
 Run the next command to build and run the project
 ```bash
